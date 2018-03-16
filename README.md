@@ -4,8 +4,8 @@ This python script is intended to be used to automatically generate use case / c
 
 ## Requirements
 
-This tool requires lxml (https://github.com/lxml/lxml)
-Under Debian you can install it with "sudo apt-get install python3-lxml"
+This tool requires lxml (https://github.com/lxml/lxml).
+On Debian you can install it with "sudo apt-get install python3-lxml"
 
 ## Usage
 
