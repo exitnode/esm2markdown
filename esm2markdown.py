@@ -9,35 +9,25 @@ def main(xmlfile,outfile):
 	root = etree.parse(xmlfile)
 
 	for rule in root.getiterator('rule'):
-
-		message = "# " + rule.findtext('message')
-		description = rule.findtext('description')
-		normalization = "* Normalization ID: " + rule.findtext('normid')
-		ruleid = "* Rule ID: " + rule.findtext('id')
-		severity = "* Severity: " + rule.findtext('severity')
-		tag = "* Tag: " + rule.findtext('tag')
 		text = rule.findtext('text')
 		cdata = etree.fromstring(text)
-		for x in cdata.getiterator('ruleset'):
-			correlationField = "* Group By: " + x.get('correlationField')
-		for t in cdata.getiterator('trigger'):
-			if (t.get('ordered')):
-				trigger_ordered = "* Ordered: " + str(t.get('ordered'))
-			if (t.get('timeout')):
-				trigger_timeout = "* Timeout: " + str(t.get('timeout'))
-			if (t.get('timeUnit')):
-				trigger_timeunit = "* Timeunit: " + str(t.get('timeUnit'))
-			if (t.get('threshold')):
-				trigger_threshold = "* Threshold: " + str(t.get('threshold'))
-			
+		message = "# " + rule.findtext('message')
 		file.write(message + "\n")
+		description = rule.findtext('description')
 		file.write("## Description\n")
 		file.write(description +"\n")
 		file.write("## General Information\n")
+		ruleid = "* Rule ID: " + rule.findtext('id')
 		file.write(ruleid +"\n")
+		normalization = "* Normalization ID: " + rule.findtext('normid')
 		file.write(normalization + "\n")
+		severity = "* Severity: " + rule.findtext('severity')
 		file.write(severity + "\n")
-		file.write(tag + "\n")
+		if (rule.findtext('tag')):
+			tag = "* Tag: " + rule.findtext('tag')
+			file.write(tag + "\n")
+		for x in cdata.getiterator('ruleset'):
+			correlationField = "* Group By: " + x.get('correlationField')
 		file.write(correlationField + "\n")
 		file.write("## Correlation Details\n")
 		file.write("### Parameters\n")
@@ -46,13 +36,27 @@ def main(xmlfile,outfile):
 			file.write("  - Description: " + p.get('description') + "\n")
 			file.write("  - Default Value: " + p.get('defaultvalue') + "\n")
 		file.write("### Trigger\n")
-		file.write(trigger_timeout + "\n")
-		file.write(trigger_timeunit + "\n")
-		file.write(trigger_threshold + "\n")
+		for t in cdata.getiterator('trigger'):
+			if (t.get('ordered')):
+				trigger_ordered = "* Ordered: " + str(t.get('ordered'))
+				file.write(trigger_ordered + "\n")
+			if (t.get('timeout')):
+				trigger_timeout = "* Timeout: " + str(t.get('timeout'))
+				file.write(trigger_timeout + "\n")
+			if (t.get('timeUnit')):
+				trigger_timeunit = "* Timeunit: " + str(t.get('timeUnit'))
+				file.write(trigger_timeunit + "\n")
+			if (t.get('threshold')):
+				trigger_threshold = "* Threshold: " + str(t.get('threshold'))
+				file.write(trigger_threshold + "\n")
 		file.write("### Rules\n")
+		# Parse CDATA element
 		for r in cdata.getiterator('rule'):
 			file.write("#### Name: " + r.get('name') + "\n")
 			for e in r.iter():
+				op = ""
+				type = ""
+				value = ""
 				if str(e.tag) == 'match':
 					file.write("* Match: \n")
 					if (e.get('count')):
@@ -65,12 +69,12 @@ def main(xmlfile,outfile):
 						file.write("  - Type: " + e.get('type') + "\n")
 				if str(e.tag) == 'singleFilterComponent':
 					if (e.get('type')):
-						file.write("  - Filter Component - Type: " + e.get('type') + "\n")
+						file.write("  - Filter Component \n    - Type: " + e.get('type') + "\n")
 				if str(e.tag) == 'filterData':
-					if (e.get('name') == "value"):
-						file.write("    - Value: " + e.get('value') + "\n")
 					if (e.get('name') == "operator"):
 						file.write("    - Operator: " + e.get('value') + "\n")
+					if (e.get('name') == "value"):
+						file.write("    - Value: " + e.get('value') + "\n")
 		file.write("******\n")
 	file.close()
 
