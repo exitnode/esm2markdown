@@ -35,29 +35,25 @@ def main(xmlfile,outfile):
 		file.write("## Correlation Details\n")
 		# Print rule parameters
 		file.write("### Parameters\n")
-		for p in cdata.getiterator('param'):
-			file.write("* Name: " + p.get('name') + "\n")
-			file.write("  - Description: " + p.get('description') + "\n")
-			file.write("  - Default Value: " + p.get('defaultvalue') + "\n")
+		for param in cdata.getiterator('param'):
+			file.write("* Name: " + param.get('name') + "\n")
+			file.write("  - Description: " + param.get('description') + "\n")
+			file.write("  - Default Value: " + param.get('defaultvalue') + "\n")
 		# Print trigger information (Ordered, Timeout, Time Unit, Threshold)
 		file.write("### Trigger\n")
-		for t in cdata.getiterator('trigger'):
-			if (t.get('ordered')):
-				trigger_ordered = "* Ordered: " + str(t.get('ordered'))
-				file.write(trigger_ordered + "\n")
-			if (t.get('timeout')):
-				trigger_timeout = "* Timeout: " + str(t.get('timeout'))
-				file.write(trigger_timeout + "\n")
-			if (t.get('timeUnit')):
-				trigger_timeunit = "* Timeunit: " + str(t.get('timeUnit'))
-				file.write(trigger_timeunit + "\n")
-			if (t.get('threshold')):
-				trigger_threshold = "* Threshold: " + str(t.get('threshold'))
-				file.write(trigger_threshold + "\n")
+		for trigger in cdata.getiterator('trigger'):
+			print(etree.tostring(trigger, pretty_print=True))
+			if (trigger.get('name')):
+				file.write("* Name: " + trigger.get('name') + "\n")
+				file.write("  - Timeout: " + trigger.get('timeout') + "\n")
+				file.write("  - Time Unit: " + trigger.get('timeUnit') + "\n")
+				file.write("  - Threshold: " + trigger.get('threshold') + "\n")
+				if (trigger.get('ordered')):
+					file.write("  - Ordered: " + trigger.get('ordered') + "\n")
 		file.write("### Rules\n")
 		# Parse CDATA element and print correlation rule match blocks
 		for r in cdata.getiterator('rule'):
-			file.write("#### Name: " + r.get('name') + "\n")
+			file.write("#### " + r.get('name') + "\n")
 			for e in r.iter():
 				if str(e.tag) == 'match':
 					file.write("* Match: \n")
