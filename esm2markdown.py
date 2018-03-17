@@ -9,13 +9,17 @@ def main(xmlfile,outfile):
 	root = etree.parse(xmlfile)
 
 	for rule in root.getiterator('rule'):
+		# Get CDATA
 		text = rule.findtext('text')
 		cdata = etree.fromstring(text)
+		# Print rule name as header
 		message = "# " + rule.findtext('message')
 		file.write(message + "\n")
+		# Print rule description
 		description = rule.findtext('description')
 		file.write("## Description\n")
 		file.write(description +"\n")
+		# Print general rule information (ID, Normalization, Severity, all Tags, Group By)
 		file.write("## General Information\n")
 		ruleid = "* Rule ID: " + rule.findtext('id')
 		file.write(ruleid +"\n")
@@ -23,18 +27,19 @@ def main(xmlfile,outfile):
 		file.write(normalization + "\n")
 		severity = "* Severity: " + rule.findtext('severity')
 		file.write(severity + "\n")
-		if (rule.findtext('tag')):
-			tag = "* Tag: " + rule.findtext('tag')
-			file.write(tag + "\n")
+		for tags in rule.getiterator('tag'):
+			file.write("* Tag: " + tags.text + "\n")
 		for x in cdata.getiterator('ruleset'):
 			correlationField = "* Group By: " + x.get('correlationField')
 		file.write(correlationField + "\n")
 		file.write("## Correlation Details\n")
+		# Print rule parameters
 		file.write("### Parameters\n")
 		for p in cdata.getiterator('param'):
 			file.write("* Name: " + p.get('name') + "\n")
 			file.write("  - Description: " + p.get('description') + "\n")
 			file.write("  - Default Value: " + p.get('defaultvalue') + "\n")
+		# Print trigger information (Ordered, Timeout, Time Unit, Threshold)
 		file.write("### Trigger\n")
 		for t in cdata.getiterator('trigger'):
 			if (t.get('ordered')):
@@ -50,13 +55,10 @@ def main(xmlfile,outfile):
 				trigger_threshold = "* Threshold: " + str(t.get('threshold'))
 				file.write(trigger_threshold + "\n")
 		file.write("### Rules\n")
-		# Parse CDATA element
+		# Parse CDATA element and print correlation rule match blocks
 		for r in cdata.getiterator('rule'):
 			file.write("#### Name: " + r.get('name') + "\n")
 			for e in r.iter():
-				op = ""
-				type = ""
-				value = ""
 				if str(e.tag) == 'match':
 					file.write("* Match: \n")
 					if (e.get('count')):
