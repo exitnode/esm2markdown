@@ -29,9 +29,9 @@ def main(xmlfile,outfile):
 		file.write(severity + "\n")
 		for tags in rule.getiterator('tag'):
 			file.write("* Tag: " + tags.text + "\n")
-		for x in cdata.getiterator('ruleset'):
-			correlationField = "* Group By: " + x.get('correlationField')
-		file.write(correlationField + "\n")
+		for rs in cdata.getiterator('ruleset'):
+			correlationField = "* Group By: " + rs.get('correlationField')
+			file.write(correlationField + "\n")
 		file.write("## Correlation Details\n")
 		# Print rule parameters
 		file.write("### Parameters\n")
@@ -54,6 +54,16 @@ def main(xmlfile,outfile):
 		for r in cdata.getiterator('rule'):
 			file.write("#### " + r.get('name') + "\n")
 			for e in r.iter():
+				if str(e.tag) == 'activate':
+					file.write("* Activate: ")
+					if (e.get('type')):
+						file.write(e.get('type') + "\n")
+				if str(e.tag) == 'action':
+					file.write("* Action: \n")
+					if (e.get('type')):
+						file.write("  - Type: " + e.get('type') + "\n")
+					if (e.get('trigger')):
+						file.write("  - Trigger: " + e.get('trigger') + "\n")
 				if str(e.tag) == 'match':
 					file.write("* Match: \n")
 					if (e.get('count')):
