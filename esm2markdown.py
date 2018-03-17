@@ -39,7 +39,7 @@ def main(xmlfile,outfile):
 			file.write("* Name: " + param.get('name') + "\n")
 			file.write("  - Description: " + param.get('description') + "\n")
 			file.write("  - Default Value: " + param.get('defaultvalue') + "\n")
-		# Print trigger information (Ordered, Timeout, Time Unit, Threshold)
+		# Print trigger information (Sequence, Timeout, Time Unit, Threshold)
 		file.write("### Trigger\n")
 		for trigger in cdata.getiterator('trigger'):
 			if (trigger.get('name')):
@@ -48,7 +48,7 @@ def main(xmlfile,outfile):
 				file.write("  - Time Unit: " + trigger.get('timeUnit') + "\n")
 				file.write("  - Threshold: " + trigger.get('threshold') + "\n")
 				if (trigger.get('ordered')):
-					file.write("  - Ordered: " + trigger.get('ordered') + "\n")
+					file.write("  - Sequence: " + trigger.get('ordered') + "\n")
 		file.write("### Rules\n")
 		# Parse CDATA element and print correlation rule match blocks
 		for r in cdata.getiterator('rule'):
@@ -73,7 +73,7 @@ def main(xmlfile,outfile):
 				if str(e.tag) == 'matchFilter':
 					file.write("* Match Filter: \n")
 					if (e.get('type')):
-						file.write("  - Type: " + e.get('type') + "\n")
+						file.write("  - Logical Element Type: " + e.get('type') + "\n")
 				if str(e.tag) == 'singleFilterComponent':
 					if (e.get('type')):
 						file.write("  - Filter Component \n    - Type: " + e.get('type') + "\n")
