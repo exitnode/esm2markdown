@@ -42,7 +42,6 @@ def main(xmlfile,outfile):
 		# Print trigger information (Ordered, Timeout, Time Unit, Threshold)
 		file.write("### Trigger\n")
 		for trigger in cdata.getiterator('trigger'):
-			print(etree.tostring(trigger, pretty_print=True))
 			if (trigger.get('name')):
 				file.write("* Name: " + trigger.get('name') + "\n")
 				file.write("  - Timeout: " + trigger.get('timeout') + "\n")
