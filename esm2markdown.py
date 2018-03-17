@@ -75,15 +75,21 @@ def main(xmlfile,outfile):
 		for rs in cdata.getiterator('ruleset'):
 			file.write(line(1,"Group By:",rs.get('correlationField')))
 		file.write("## Correlation Details\n")
+		parameters = 0
 		# Print rule parameters
-		file.write("### Parameters\n")
 		for param in cdata.getiterator('param'):
+			if parameters == 0:
+				file.write("### Parameters\n")
+				parameters = 1
 			file.write(line(1,param.get('name'),"N/A"))
 			file.write(line(2,"Description:",param.get('description')))
 			file.write(line(2,"Default Value:",param.get('defaultvalue')))
 		# Print trigger information (Sequence, Timeout, Time Unit, Threshold)
-		file.write("### Trigger\n")
+		triggers = 0
 		for trigger in cdata.getiterator('trigger'):
+			if triggers == 0:
+				file.write("### Triggers\n")
+				triggers = 1
 			file.write(line(1,trigger.get('name'),"N/A"))
 			file.write(line(2,"Timeout:",trigger.get('timeout')))
 			file.write(line(2,"Time Units:",trigger.get('timeUnit')))
