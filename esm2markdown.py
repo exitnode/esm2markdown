@@ -1,4 +1,23 @@
 #!/usr/bin/env python
+'''
+esm2markdown - McAfee ESM correlation rule XML export to markdown converter
+Copyright (C) 2018 Michael Clemens
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+'''
+
 import sys
 from lxml import etree
 
@@ -37,14 +56,15 @@ def main(xmlfile,outfile):
 		# Print rule parameters
 		file.write("### Parameters\n")
 		for param in cdata.getiterator('param'):
-			file.write("* " + style + "Name:" + style + " " + param.get('name') + "\n")
-			file.write("  - " + style + "Description:" + style + " " + param.get('description') + "\n")
-			file.write("  - " + style + "Default Value:" + style + " " + param.get('defaultvalue') + "\n")
+			if (param.get('name')):
+				file.write("* " + style + param.get('name') + style + "\n")
+				file.write("  - " + style + "Description:" + style + " " + param.get('description') + "\n")
+				file.write("  - " + style + "Default Value:" + style + " " + param.get('defaultvalue') + "\n")
 		# Print trigger information (Sequence, Timeout, Time Unit, Threshold)
 		file.write("### Trigger\n")
 		for trigger in cdata.getiterator('trigger'):
 			if (trigger.get('name')):
-				file.write("* " + style + "Name:" + style + " " + trigger.get('name') + "\n")
+				file.write("* " + style + trigger.get('name') + style + "\n")
 				file.write("  - " + style + "Timeout:" + style + " " + trigger.get('timeout') + " " + trigger.get('timeUnit') + "\n")
 				file.write("  - " + style + "Threshold:" + style + " " + trigger.get('threshold') + "\n")
 				if (trigger.get('ordered')):
