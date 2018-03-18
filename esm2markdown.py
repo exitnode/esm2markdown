@@ -22,51 +22,70 @@ import sys
 from lxml import etree
 
 style="**"
-level1="* "
-level2="  - "
-level3="    - "
+level1="*   "
+level2="    * "
+level3="        * "
 
+
+# Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
 
 	lvl = ""	
 	output = ""
 	valout = ""
-	if level == 1:
-		lvl = level1	
-	elif level == 2:
-		lvl = level2	
-	elif level == 3:
-		lvl = level3	
-	else:
-		lvl = ""
+
+	if level == 1: lvl = level1	
+	elif level == 2: lvl = level2	
+	elif level == 3: lvl = level3	
+	else: lvl = ""
+
 	if key:
-		if value == "N/A":
-			output = lvl + style + key + style + "\n"
-		elif value:
-			output = lvl + style + key + style + " " + value + "\n"
-		else:
-			output = ""
+		if value == "N/A": output = lvl + style + key + style + "\n"
+		elif value: output = lvl + style + key + style + " " + value + "\n"
+		else: output = ""
+
 	return output
 
 
+# Sorts input XML alphabetically based on Rule Names
+def sortxml(xmlfile):
+
+	parser = etree.XMLParser(strip_cdata=False)
+	with open(xmlfile, "rb") as source:
+		root = etree.parse(source, parser=parser)
+
+	temp = root.find("rules")
+
+	data = []
+	for e in temp:
+		msg = e.findtext("message")
+		data.append((msg, e))
+
+	data.sort()
+
+	temp[:] = [item[-1] for item in data]
+	return root
+
+
+# Main Function
 def main(xmlfile,outfile):
 
 	file = open(outfile,"w")
-	root = etree.parse(xmlfile)
+	root = sortxml(xmlfile)
 
 	for rule in root.getiterator('rule'):
 		# Get CDATA
 		text = rule.findtext('text')
 		cdata = etree.fromstring(text)
 		# Print rule name as header
-		message = "# " + rule.findtext('message')
+		message = "\n# " + rule.findtext('message')
 		file.write(message + "\n")
 		# Print rule description
 		description = rule.findtext('description')
-		file.write("## Description\n")
+		file.write("\n## Description\n")
 		file.write(description +"\n")
 		# Print general rule information (ID, Normalization, Severity, all Tags, Group By)
-		file.write("## General Information\n")
+		file.write("\n## General Information\n")
 		file.write(line(1,"Rule ID:",rule.findtext('id')))
 		file.write(line(1,"Normalization ID:",rule.findtext('normid')))
 		file.write(line(1,"Severity:",rule.findtext('severity')))
@@ -74,12 +93,12 @@ def main(xmlfile,outfile):
 			file.write(line(1,"Tag:",tags.text))
 		for rs in cdata.getiterator('ruleset'):
 			file.write(line(1,"Group By:",rs.get('correlationField')))
-		file.write("## Correlation Details\n")
+		file.write("\n## Correlation Details\n")
 		parameters = 0
 		# Print rule parameters
 		for param in cdata.getiterator('param'):
 			if parameters == 0:
-				file.write("### Parameters\n")
+				file.write("\n### Parameters\n")
 				parameters = 1
 			file.write(line(1,param.get('name'),"N/A"))
 			file.write(line(2,"Description:",param.get('description')))
@@ -88,20 +107,20 @@ def main(xmlfile,outfile):
 		triggers = 0
 		for trigger in cdata.getiterator('trigger'):
 			if triggers == 0:
-				file.write("### Triggers\n")
+				file.write("\n### Triggers\n")
 				triggers = 1
 			file.write(line(1,trigger.get('name'),"N/A"))
 			file.write(line(2,"Timeout:",trigger.get('timeout')))
 			file.write(line(2,"Time Units:",trigger.get('timeUnit')))
 			file.write(line(2,"Threshold:",trigger.get('threshold')))
 			file.write(line(2,"Sequence:",trigger.get('ordered')))
-		file.write("### Rules\n")
+		file.write("\n### Rules\n")
 		# Parse CDATA element and print correlation rule match blocks
 		for r in cdata.getiterator('rule'):
 			o = ""
 			v = ""
 			t = ""
-			file.write("#### " + r.get('name') + "\n")
+			file.write("\n#### " + r.get('name') + "\n")
 			for e in r.iter():
 				if str(e.tag) == 'activate':
 					file.write(line(1,"Activate:",e.get('type')))
@@ -119,16 +138,14 @@ def main(xmlfile,outfile):
 				if str(e.tag) == 'singleFilterComponent':
 					t = e.get('type')
 				if str(e.tag) == 'filterData':
-					if (e.get('name') == "operator"):
-						o = e.get('value')
-					if (e.get('name') == "value"):
-						v = e.get('value')
+					if (e.get('name') == "operator"): o = e.get('value')
+					if (e.get('name') == "value"): v = e.get('value')
 				if o and v and t:
 					file.write(line(2,"Filter Component","N/A"))
 					file.write(line(3,"Condition:","'" + t + "' " + o + " '" + v + "'"))
 					v = ""
 					o = ""
-	file.write("******\n")
+	file.write("\n\\newpage\n")
 	file.close()
 
 if __name__=="__main__":
