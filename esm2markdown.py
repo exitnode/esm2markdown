@@ -30,139 +30,149 @@ value_style = ""
 level1 = "*   "
 level2 = "    * "
 level3 = "        * "
-
+    
 # Configure here if Rules should be alphabetically sorted or not
 sort_rules = True
+
+# Configure TOC generation
+toc = True
 
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
 
-	lvl = ""	
-	output = ""
-	valout = ""
+    lvl = ""	
+    output = ""
+    valout = ""
 
-	if level == 1: lvl = level1	
-	elif level == 2: lvl = level2	
-	elif level == 3: lvl = level3	
-	else: lvl = ""
+    if level == 1: lvl = level1	
+    elif level == 2: lvl = level2	
+    elif level == 3: lvl = level3	
+    else: lvl = ""
 
-	if key:
-		if value == "N/A": output = lvl + key_style + key + key_style + "\n"
-		elif value: output = lvl + key_style + key + key_style + " " + value_style + value + value_style + "\n"
-		else: output = ""
+    if key:
+        if value == "N/A": output = lvl + key_style + key + key_style + "\n"
+        elif value: output = lvl + key_style + key + key_style + " " + value_style + value + value_style + "\n"
+        else: output = ""
 
-	return output
+    return output
 
 
 # Sorts input XML alphabetically based on Rule Names
 def sortxml(xmlfile):
 
-	parser = etree.XMLParser(strip_cdata=False)
-	with open(xmlfile, "rb") as source:
-		root = etree.parse(source, parser=parser)
+    parser = etree.XMLParser(strip_cdata=False)
+    with open(xmlfile, "rb") as source:
+        root = etree.parse(source, parser=parser)
 
-	temp = root.find("rules")
+    temp = root.find("rules")
 
-	data = []
-	for e in temp:
-		msg = e.findtext("message")
-		data.append((msg, e))
+    data = []
+    for e in temp:
+        msg = e.findtext("message")
+        data.append((msg, e))
 
-	data.sort()
+    data.sort()
 
-	temp[:] = [item[-1] for item in data]
-	return root
+    temp[:] = [item[-1] for item in data]
+    return root
 
 
 # Main Function
 def main(xmlfile,outfile):
 
-	file = open(outfile,"w")
+    file = open(outfile,"w")
 
-	if sort_rules:
-		root = sortxml(xmlfile)
-	else:
-		root = etree.parse(xmlfile)
+    if sort_rules:
+        root = sortxml(xmlfile)
+    else:
+        root = etree.parse(xmlfile)
 
-	for rule in root.getiterator('rule'):
-		# Get CDATA
-		text = rule.findtext('text')
-		cdata = etree.fromstring(text)
-		# Print rule name as header
-		message = "\n# " + rule.findtext('message')
-		file.write(message + "\n")
-		# Print rule description
-		description = rule.findtext('description')
-		file.write("\n## Description\n")
-		file.write(description +"\n")
-		# Print general rule information (ID, Normalization, Severity, all Tags, Group By)
-		file.write("\n## General Information\n")
-		file.write(line(1,"Rule ID:",rule.findtext('id')))
-		file.write(line(1,"Normalization ID:",rule.findtext('normid')))
-		file.write(line(1,"Severity:",rule.findtext('severity')))
-		for tags in rule.getiterator('tag'):
-			file.write(line(1,"Tag:",tags.text))
-		for rs in cdata.getiterator('ruleset'):
-			file.write(line(1,"Group By:",rs.get('correlationField')))
-		file.write("\n## Correlation Details\n")
-		parameters = False
-		# Print rule parameters
-		for param in cdata.getiterator('param'):
-			if not parameters:
-				file.write("\n### Parameters\n")
-				parameters = True
-			file.write(line(1,param.get('name'),"N/A"))
-			file.write(line(2,"Description:",param.get('description')))
-			file.write(line(2,"Default Value:",param.get('defaultvalue')))
-		# Print trigger information (Sequence, Timeout, Time Unit, Threshold)
-		triggers = False 
-		for trigger in cdata.getiterator('trigger'):
-			if not triggers:
-				file.write("\n### Triggers\n")
-				triggers = True
-			file.write(line(1,trigger.get('name'),"N/A"))
-			file.write(line(2,"Timeout:",trigger.get('timeout')))
-			file.write(line(2,"Time Units:",trigger.get('timeUnit')))
-			file.write(line(2,"Threshold:",trigger.get('threshold')))
-			file.write(line(2,"Sequence:",trigger.get('ordered')))
-		file.write("\n### Rules\n")
-		# Parse CDATA element and print correlation rule match blocks
-		for r in cdata.getiterator('rule'):
-			o = ""
-			v = ""
-			t = ""
-			file.write("\n#### " + r.get('name') + "\n")
-			for e in r.iter():
-				if str(e.tag) == 'activate':
-					file.write(line(1,"Activate:",e.get('type')))
-				if str(e.tag) == 'action':
-					file.write(line(1,"Action","N/A"))
-					file.write(line(2,"Type:",e.get('type')))
-					file.write(line(2,"Trigger:",e.get('trigger')))
-				if str(e.tag) == 'match':
-					file.write(line(1,"Match","N/A"))
-					file.write(line(2,"Count:",e.get('count')))
-					file.write(line(2,"Match Type:",e.get('matchType')))
-				if str(e.tag) == 'matchFilter':
-					file.write(line(1,"Match Filter","N/A"))
-					file.write(line(2,"Logical Element Type:",e.get('type')))
-				if str(e.tag) == 'singleFilterComponent':
-					t = e.get('type')
-				if str(e.tag) == 'filterData':
-					if (e.get('name') == "operator"): o = e.get('value')
-					if (e.get('name') == "value"): v = e.get('value')
-				if o and v and t:
-					file.write(line(2,"Filter Component","N/A"))
-					file.write(line(3,"Condition:","'" + t + "' " + o + " '" + v + "'"))
-					v = ""
-					o = ""
-	file.write("\n\\newpage\n")
-	file.close()
+    if toc:
+        file.write("\n# Correlation Rule Overview\n\n")
+        for rule in root.getiterator('rule'):
+            file.write(line(1,rule.findtext('message'),"N/A"))
+
+    for rule in root.getiterator('rule'):
+        # Get CDATA
+        text = rule.findtext('text')
+        cdata = etree.fromstring(text)
+        # Print rule name as header
+        message = "\n# " + rule.findtext('message')
+        file.write(message + "\n")
+        # Print rule description
+        description = rule.findtext('description')
+        file.write("\n## Description\n")
+        file.write(description +"\n")
+        # Print general rule information (ID, Normalization, Severity, all Tags, Group By)
+        file.write("\n## General Information\n")
+        file.write(line(1,"Rule ID:",rule.findtext('id')))
+        file.write(line(1,"Normalization ID:",rule.findtext('normid')))
+        file.write(line(1,"Severity:",rule.findtext('severity')))
+        for tags in rule.getiterator('tag'):
+            file.write(line(1,"Tag:",tags.text))
+        for rs in cdata.getiterator('ruleset'):
+            file.write(line(1,"Group By:",rs.get('correlationField')))
+        file.write("\n## Correlation Details\n")
+        parameters = False
+        # Print rule parameters
+        for param in cdata.getiterator('param'):
+            if not parameters:
+                file.write("\n### Parameters\n")
+                parameters = True
+            file.write(line(1,param.get('name'),"N/A"))
+            file.write(line(2,"Description:",param.get('description')))
+            file.write(line(2,"Default Value:",param.get('defaultvalue')))
+        # Print trigger information (Sequence, Timeout, Time Unit, Threshold)
+        triggers = False 
+        for trigger in cdata.getiterator('trigger'):
+            if not triggers:
+                file.write("\n### Triggers\n")
+                triggers = True
+            file.write(line(1,trigger.get('name'),"N/A"))
+            file.write(line(2,"Timeout:",trigger.get('timeout')))
+            file.write(line(2,"Time Units:",trigger.get('timeUnit')))
+            file.write(line(2,"Threshold:",trigger.get('threshold')))
+            file.write(line(2,"Sequence:",trigger.get('ordered')))
+        file.write("\n### Rules\n")
+        # Parse CDATA element and print correlation rule match blocks
+        for r in cdata.getiterator('rule'):
+            o = ""
+            v = ""
+            t = ""
+            file.write("\n#### " + r.get('name') + "\n")
+            for e in r.iter():
+                if str(e.tag) == 'activate':
+                    file.write(line(1,"Activate:",e.get('type')))
+                if str(e.tag) == 'action':
+                    file.write(line(1,"Action","N/A"))
+                    file.write(line(2,"Type:",e.get('type')))
+                    file.write(line(2,"Trigger:",e.get('trigger')))
+                if str(e.tag) == 'match':
+                    file.write(line(1,"Match","N/A"))
+                    file.write(line(2,"Count:",e.get('count')))
+                    file.write(line(2,"Match Type:",e.get('matchType')))
+                if str(e.tag) == 'matchFilter':
+                    file.write(line(1,"Match Filter","N/A"))
+                    file.write(line(2,"Logical Element Type:",e.get('type')))
+                if str(e.tag) == 'singleFilterComponent':
+                    t = e.get('type')
+                if str(e.tag) == 'filterData':
+                    if (e.get('name') == "operator"):
+                        o = e.get('value')
+                    if (e.get('name') == "value"):
+                        v = e.get('value')
+                if o and v and t:
+                    file.write(line(2,"Filter Component","N/A"))
+                    file.write(line(3,"Condition:","'" + t + "' " + o + " '" + v + "'"))
+                    v = ""
+                    o = ""
+    file.write("\n\\newpage\n")
+    file.close()
 
 if __name__=="__main__":
-	if len(sys.argv) != 3:
-		print('Invalid Numbers of Arguments. Script will be terminated.')
-		print('Usage: python esm2markdown <rule xml file> <markdown output file>')
-		print('Example: python esm2markdown RuleExport_2018_03_01_12_36_37.xml documentation.mk')
-	else:
-		main(sys.argv[1],sys.argv[2]);
+    if len(sys.argv) != 3:
+        print('Invalid Numbers of Arguments. Script will be terminated.')
+        print('Usage: python esm2markdown <rule xml file> <markdown output file>')
+        print('Example: python esm2markdown RuleExport_2018_03_01_12_36_37.xml documentation.mk')
+    else:
+        main(sys.argv[1],sys.argv[2]);
