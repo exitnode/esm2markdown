@@ -51,7 +51,8 @@ def line(level,key,value):
 
     if key:
         if value == "N/A": output = lvl + key_style + key + key_style + "\n"
-        elif value: output = lvl + key_style + key + key_style + " " + value_style + value + value_style + "\n"
+        elif value: output = lvl + key_style + key + key_style + " " + \
+                value_style + value + value_style + "\n"
         else: output = ""
 
     return output
@@ -103,7 +104,7 @@ def main(xmlfile,outfile):
         description = rule.findtext('description')
         file.write("\n## Description\n")
         file.write(description +"\n")
-        # Print general rule information (ID, Normalization, Severity, all Tags, Group By)
+        # Print rule information (ID, Normalization, Severity, Tags, Group By)
         file.write("\n## General Information\n")
         file.write(line(1,"Rule ID:",rule.findtext('id')))
         file.write(line(1,"Normalization ID:",rule.findtext('normid')))
@@ -163,7 +164,8 @@ def main(xmlfile,outfile):
                         v = e.get('value')
                 if o and v and t:
                     file.write(line(2,"Filter Component","N/A"))
-                    file.write(line(3,"Condition:","'" + t + "' " + o + " '" + v + "'"))
+                    file.write(line(3,"Condition:","'" + t + "' " + o + " '" \
+                            + v + "'"))
                     v = ""
                     o = ""
     file.write("\n\\newpage\n")
@@ -172,7 +174,7 @@ def main(xmlfile,outfile):
 if __name__=="__main__":
     if len(sys.argv) != 3:
         print('Invalid Numbers of Arguments. Script will be terminated.')
-        print('Usage: python esm2markdown <rule xml file> <markdown output file>')
-        print('Example: python esm2markdown RuleExport_2018_03_01_12_36_37.xml documentation.mk')
+        print('Usage: python esm2markdown <rule xml file> <output file>')
+        print('Example: python esm2markdown RuleExport.xml documentation.mk')
     else:
         main(sys.argv[1],sys.argv[2]);
