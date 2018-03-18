@@ -21,11 +21,18 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 import sys
 from lxml import etree
 
-style="**"
-level1="*   "
-level2="    * "
-level3="        * "
+# Configure here the style of keys and values e.g. to bold or italic.
+# Default: Keys are displayed in bold, values have no specific style
+key_style = "**"
+value_style = ""
 
+# Configure here how your lists will look like in Markdown
+level1 = "*   "
+level2 = "    * "
+level3 = "        * "
+
+# Configure here if Rules should be alphabetically sorted or not
+sort_rules = True
 
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
@@ -40,8 +47,8 @@ def line(level,key,value):
 	else: lvl = ""
 
 	if key:
-		if value == "N/A": output = lvl + style + key + style + "\n"
-		elif value: output = lvl + style + key + style + " " + value + "\n"
+		if value == "N/A": output = lvl + key_style + key + key_style + "\n"
+		elif value: output = lvl + key_style + key + key_style + " " + value_style + value + value_style + "\n"
 		else: output = ""
 
 	return output
@@ -71,7 +78,11 @@ def sortxml(xmlfile):
 def main(xmlfile,outfile):
 
 	file = open(outfile,"w")
-	root = sortxml(xmlfile)
+
+	if sort_rules:
+		root = sortxml(xmlfile)
+	else:
+		root = etree.parse(xmlfile)
 
 	for rule in root.getiterator('rule'):
 		# Get CDATA
@@ -94,21 +105,21 @@ def main(xmlfile,outfile):
 		for rs in cdata.getiterator('ruleset'):
 			file.write(line(1,"Group By:",rs.get('correlationField')))
 		file.write("\n## Correlation Details\n")
-		parameters = 0
+		parameters = False
 		# Print rule parameters
 		for param in cdata.getiterator('param'):
-			if parameters == 0:
+			if not parameters:
 				file.write("\n### Parameters\n")
-				parameters = 1
+				parameters = True
 			file.write(line(1,param.get('name'),"N/A"))
 			file.write(line(2,"Description:",param.get('description')))
 			file.write(line(2,"Default Value:",param.get('defaultvalue')))
 		# Print trigger information (Sequence, Timeout, Time Unit, Threshold)
-		triggers = 0
+		triggers = False 
 		for trigger in cdata.getiterator('trigger'):
-			if triggers == 0:
+			if not triggers:
 				file.write("\n### Triggers\n")
-				triggers = 1
+				triggers = True
 			file.write(line(1,trigger.get('name'),"N/A"))
 			file.write(line(2,"Timeout:",trigger.get('timeout')))
 			file.write(line(2,"Time Units:",trigger.get('timeUnit')))
