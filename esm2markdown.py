@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''
 esm2markdown - McAfee ESM correlation rule XML export to markdown converter
 Copyright (C) 2018 Michael Clemens
@@ -19,23 +19,22 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 '''
 
 import sys
+import os.path
+from configparser import ConfigParser
 from lxml import etree
 
-# Configure here the style of keys and values e.g. to bold or italic.
-# Default: Keys are displayed in bold, values have no specific style
-key_style = "**"
-value_style = ""
 
-# Configure here how your lists will look like in Markdown
-level1 = "*   "
-level2 = "    * "
-level3 = "        * "
-    
-# Configure here if Rules should be alphabetically sorted or not
-sort_rules = True
+# Read configuration from ini file
+config = ConfigParser()
+config.read('esm2markdown.ini')
 
-# Configure TOC generation
-toc = True
+key_style = config.get('config', 'key_style')
+value_style = config.get('config', 'value_style')
+sort_rules = config.getboolean('config', 'sort_rules')
+toc = config.getboolean('config', 'toc')
+images = config.getboolean('config', 'images')
+imagepath = config.get('config', 'imagepath')
+
 
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
@@ -44,9 +43,9 @@ def line(level,key,value):
     output = ""
     valout = ""
 
-    if level == 1: lvl = level1	
-    elif level == 2: lvl = level2	
-    elif level == 3: lvl = level3	
+    if level == 1: lvl = "*   "
+    elif level == 2: lvl = "    * "
+    elif level == 3: lvl = "        * "
     else: lvl = ""
 
     if key:
@@ -77,6 +76,15 @@ def sortxml(xmlfile):
     temp[:] = [item[-1] for item in data]
     return root
 
+# Generate Markdown Syntax for Images
+def addimage(rulename):
+    
+    out = ""
+    imagefile = imagepath + "/" + rulename + ".png"
+    imagefile = imagefile.replace(" ", "_")
+    if (os.path.isfile(imagefile)):
+        out = "![](" + imagefile + ")\n\n\n"
+    return out
 
 # Main Function
 def main(xmlfile,outfile):
@@ -98,8 +106,8 @@ def main(xmlfile,outfile):
         text = rule.findtext('text')
         cdata = etree.fromstring(text)
         # Print rule name as header
-        message = "\n# " + rule.findtext('message')
-        file.write(message + "\n")
+        rulename = rule.findtext('message')
+        file.write("\n# " + rulename + "\n")
         # Print rule description
         description = rule.findtext('description')
         file.write("\n## Description\n")
@@ -114,6 +122,8 @@ def main(xmlfile,outfile):
         for rs in cdata.getiterator('ruleset'):
             file.write(line(1,"Group By:",rs.get('correlationField')))
         file.write("\n## Correlation Details\n")
+        if images:
+            file.write(addimage(rulename))
         parameters = False
         # Print rule parameters
         for param in cdata.getiterator('param'):
