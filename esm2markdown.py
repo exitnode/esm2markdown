@@ -23,6 +23,7 @@ import os.path
 import re
 from configparser import ConfigParser
 from lxml import etree
+from urllib.parse import unquote
 
 
 # Read configuration from ini file
@@ -48,6 +49,9 @@ def line(level,key,value):
     elif level == 2: lvl = "    * "
     elif level == 3: lvl = "        * "
     else: lvl = ""
+    
+    if value:
+        value = unquote(value)
 
     if key:
         if value == "N/A": output = lvl + key_style + key + key_style + "\n"
@@ -143,7 +147,7 @@ def main(xmlfile,outfile):
             v = ""
             t = ""
             if not r.get('name') == "Root Rule":
-                file.write("\n#### " + r.get('name') + "\n")
+                file.write("\n#### " + r.get('name').title().replace("_", " ") + "\n")
                 for e in r.iter():
                     if str(e.tag) == 'activate':
                         file.write(line(1,"Activate:",e.get('type')))
@@ -162,10 +166,8 @@ def main(xmlfile,outfile):
                     if str(e.tag) == 'match':
                         file.write(line(1,"Match Type:",e.get('matchType')))
                         file.write(line(2,"Count:",e.get('count')))
-                        #file.write(line(2,"Match Type:",e.get('matchType')))
                     if str(e.tag) == 'matchFilter':
                         file.write(line(1,"Match Filter:",e.get('type').upper()))
-                        #file.write(line(2,"Logical Element Type:",e.get('type').upper()))
                     if str(e.tag) == 'singleFilterComponent':
                         t = e.get('type')
                     if str(e.tag) == 'filterData':
