@@ -178,7 +178,7 @@ def main(xmlfile,outfile):
                             + v + "'"))
                     v = ""
                     o = ""
-    file.write("\n\\newpage\n")
+        file.write("\n\\newpage\n")
     file.close()
 
 if __name__=="__main__":
