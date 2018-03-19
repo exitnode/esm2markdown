@@ -20,6 +20,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 import sys
 import os.path
+import re
 from configparser import ConfigParser
 from lxml import etree
 
@@ -54,6 +55,8 @@ def line(level,key,value):
                 value_style + value + value_style + "\n"
         else: output = ""
 
+    output = re.sub('\$\$$',"]",output)
+    output = re.sub('\$\$',"PARAMETER:[",output)
     return output
 
 
@@ -133,51 +136,49 @@ def main(xmlfile,outfile):
             file.write(line(1,param.get('name'),"N/A"))
             file.write(line(2,"Description:",param.get('description')))
             file.write(line(2,"Default Value:",param.get('defaultvalue')))
-        # Print trigger information (Sequence, Timeout, Time Unit, Threshold)
-        triggers = False 
-        for trigger in cdata.getiterator('trigger'):
-            if not triggers:
-                file.write("\n### Triggers\n")
-                triggers = True
-            file.write(line(1,trigger.get('name'),"N/A"))
-            file.write(line(2,"Timeout:",trigger.get('timeout')))
-            file.write(line(2,"Time Units:",trigger.get('timeUnit')))
-            file.write(line(2,"Threshold:",trigger.get('threshold')))
-            file.write(line(2,"Sequence:",trigger.get('ordered')))
         file.write("\n### Rules\n")
         # Parse CDATA element and print correlation rule match blocks
         for r in cdata.getiterator('rule'):
             o = ""
             v = ""
             t = ""
-            file.write("\n#### " + r.get('name') + "\n")
-            for e in r.iter():
-                if str(e.tag) == 'activate':
-                    file.write(line(1,"Activate:",e.get('type')))
-                if str(e.tag) == 'action':
-                    file.write(line(1,"Action","N/A"))
-                    file.write(line(2,"Type:",e.get('type')))
-                    file.write(line(2,"Trigger:",e.get('trigger')))
-                if str(e.tag) == 'match':
-                    file.write(line(1,"Match","N/A"))
-                    file.write(line(2,"Count:",e.get('count')))
-                    file.write(line(2,"Match Type:",e.get('matchType')))
-                if str(e.tag) == 'matchFilter':
-                    file.write(line(1,"Match Filter","N/A"))
-                    file.write(line(2,"Logical Element Type:",e.get('type')))
-                if str(e.tag) == 'singleFilterComponent':
-                    t = e.get('type')
-                if str(e.tag) == 'filterData':
-                    if (e.get('name') == "operator"):
-                        o = e.get('value')
-                    if (e.get('name') == "value"):
-                        v = e.get('value')
-                if o and v and t:
-                    file.write(line(2,"Filter Component","N/A"))
-                    file.write(line(3,"Condition:","'" + t + "' " + o + " '" \
-                            + v + "'"))
-                    v = ""
-                    o = ""
+            if not r.get('name') == "Root Rule":
+                file.write("\n#### " + r.get('name') + "\n")
+                for e in r.iter():
+                    if str(e.tag) == 'activate':
+                        file.write(line(1,"Activate:",e.get('type')))
+                    if str(e.tag) == 'action':
+                        if e.get('type') == "TRIGGER":
+                            file.write(line(1,"Action:","Trigger"))
+                            for trigger in cdata.getiterator('trigger'):
+                                if e.get('trigger') == trigger.get('name'):
+                                    file.write(line(2,"Timeout:",trigger.get('timeout')))
+                                    file.write(line(2,"Time Units:",trigger.get('timeUnit')))
+                                    file.write(line(2,"Threshold:",trigger.get('threshold')))
+                                    file.write(line(2,"Sequence:",trigger.get('ordered')))
+                        else:
+                            file.write(line(1,"Action","N/A"))
+                            file.write(line(2,"NOT IMPLEMENTED","N/A"))
+                    if str(e.tag) == 'match':
+                        file.write(line(1,"Match Type:",e.get('matchType')))
+                        file.write(line(2,"Count:",e.get('count')))
+                        #file.write(line(2,"Match Type:",e.get('matchType')))
+                    if str(e.tag) == 'matchFilter':
+                        file.write(line(1,"Match Filter:",e.get('type').upper()))
+                        #file.write(line(2,"Logical Element Type:",e.get('type').upper()))
+                    if str(e.tag) == 'singleFilterComponent':
+                        t = e.get('type')
+                    if str(e.tag) == 'filterData':
+                        if (e.get('name') == "operator"):
+                            o = e.get('value')
+                        if (e.get('name') == "value"):
+                            v = e.get('value')
+                    if o and v and t:
+                        file.write(line(2,"Filter Component","N/A"))
+                        file.write(line(3,"Condition:","'" + t + "' " + o + " '" \
+                                + v + "'"))
+                        v = ""
+                        o = ""
         file.write("\n\\newpage\n")
     file.close()
 
