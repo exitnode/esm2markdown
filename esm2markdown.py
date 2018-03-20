@@ -37,7 +37,6 @@ toc = config.getboolean('config', 'toc')
 images = config.getboolean('config', 'images')
 imagepath = config.get('config', 'imagepath')
 
-
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
 
@@ -59,8 +58,8 @@ def line(level,key,value):
                 value_style + value + value_style + "\n"
         else: output = ""
 
-    output = re.sub('\$\$$',"]",output)
-    output = re.sub('\$\$',"PARAMETER:[",output)
+    output = re.sub('\$\$',"!",output)
+    #output = re.sub('\$\$',"PARAMETER:[",output)
     return output
 
 
@@ -146,11 +145,15 @@ def main(xmlfile,outfile):
             o = ""
             v = ""
             t = ""
+            override = ""
             if not r.get('name') == "Root Rule":
                 file.write("\n#### " + r.get('name').title().replace("_", " ") + "\n")
+                override = r.get('correlationField')
                 for e in r.iter():
                     if str(e.tag) == 'activate':
                         file.write(line(1,"Activate:",e.get('type')))
+                        if override:
+                            file.write(line(1,"Override Group By:",override))
                     if str(e.tag) == 'action':
                         if e.get('type') == "TRIGGER":
                             file.write(line(1,"Action:","Trigger"))
@@ -167,7 +170,7 @@ def main(xmlfile,outfile):
                         file.write(line(1,"Match Type:",e.get('matchType')))
                         file.write(line(2,"Count:",e.get('count')))
                     if str(e.tag) == 'matchFilter':
-                        file.write(line(1,"Match Filter:",e.get('type').upper()))
+                        file.write(line(1,"Match Filter","N/A"))
                     if str(e.tag) == 'singleFilterComponent':
                         t = e.get('type')
                     if str(e.tag) == 'filterData':
