@@ -4,8 +4,14 @@ This python script is intended to be used to automatically generate use case / c
 
 ## Requirements
 
-This tool requires Python 3 and lxml (https://github.com/lxml/lxml).
-On Debian you can install it with "sudo apt-get install python3-lxml"
+This tool requires the following:
+* Python 3
+* lxml 
+* networkx
+* pydot
+
+
+On Debian you can install the dependencies with "sudo apt-get install python3-lxml python3-networkxi python3-pydot"
 
 ## Usage
 
