@@ -21,9 +21,12 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 import sys
 import os.path
 import re
+import networkx as nx
 from configparser import ConfigParser
 from lxml import etree
 from urllib.parse import unquote
+from networkx.drawing.nx_pydot import write_dot
+from subprocess import check_call
 
 
 # Read configuration from ini file
@@ -36,6 +39,7 @@ sort_rules = config.getboolean('config', 'sort_rules')
 toc = config.getboolean('config', 'toc')
 images = config.getboolean('config', 'images')
 imagepath = config.get('config', 'imagepath')
+
 
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
@@ -59,7 +63,6 @@ def line(level,key,value):
         else: output = ""
 
     output = re.sub('\$\$',"!",output)
-    #output = re.sub('\$\$',"PARAMETER:[",output)
     return output
 
 
@@ -82,15 +85,76 @@ def sortxml(xmlfile):
     temp[:] = [item[-1] for item in data]
     return root
 
+
 # Generate Markdown Syntax for Images
 def addimage(rulename):
     
     out = ""
     imagefile = imagepath + "/" + rulename + ".png"
     imagefile = imagefile.replace(" ", "_")
-    if (os.path.isfile(imagefile)):
-        out = "![](" + imagefile + ")\n\n\n"
+    out = "![](" + imagefile + ")\n\n\n"
     return out
+
+
+# Generate dict object with relations between triggers and match blocks
+def getRelationDict(cdata):
+
+    rel = {}
+
+    # Populate Tree with rule objects
+    for r in cdata.getiterator('rule'):
+        if not r.get('name') == "Root Rule":
+            for e in r.iter():
+                if str(e.tag) == 'action':
+                    if e.get('type') == "TRIGGER":
+                        for trigger in cdata.getiterator('trigger'):
+                            if e.get('trigger') == trigger.get('name'):
+                                rel[r.get('name')]=trigger.get('name')
+
+    # Populate Tree with trigger objects
+    for t in cdata.getiterator('trigger'):
+        tname = t.get('name')
+        tparent = t.findtext('trigger')
+
+        if tname: 
+            if not tparent:
+                tparent = "root"
+            rel[tname]=tparent
+
+    return rel 
+
+# populate Graph Object with trigger nodes and edges
+def addTriggersToGraph(reldict,cdata,G):
+
+    # Walk through dict
+    tco = 99
+    for key in sorted(reldict):
+        trigcount = 0
+        # count triggers per rule
+        if key.startswith("trigger"):
+            for trigkey in sorted(reldict):
+                if reldict[trigkey] == key:
+                   trigcount += 1 
+            # get count value from triggers element
+            for tc in cdata.getiterator('trigger'):
+                if tc.get('name') == key:
+                    if tc.get('count'):
+                        tco = int(tc.get('count'))
+            # compare count value and counted triggers
+            # if both are the same, all match blocks need to match
+            # therefore the logical operator is AND
+            # otherwise its OR
+            if tco == trigcount:
+                oper = "AND"
+            else:
+                oper = "OR"
+            
+            # add trigger nodes to graph
+            G.add_node(key, label=oper, shape='plaintext')
+            if key != "root" and reldict[key] != "root":
+                G.add_edge(reldict[key],key,splines='ortho', nodesep=0.2)
+    return G
+
 
 # Main Function
 def main(xmlfile,outfile):
@@ -108,6 +172,7 @@ def main(xmlfile,outfile):
             file.write(line(1,rule.findtext('message'),"N/A"))
 
     for rule in root.getiterator('rule'):
+        G = nx.DiGraph()
         # Get CDATA
         text = rule.findtext('text')
         cdata = etree.fromstring(text)
@@ -129,7 +194,7 @@ def main(xmlfile,outfile):
             file.write(line(1,"Group By:",rs.get('correlationField')))
         file.write("\n## Correlation Details\n")
         if images:
-            file.write(addimage(rulename))
+            file.write(addimage(rule.findtext('id')))
         parameters = False
         # Print rule parameters
         for param in cdata.getiterator('param'):
@@ -139,13 +204,25 @@ def main(xmlfile,outfile):
             file.write(line(1,param.get('name'),"N/A"))
             file.write(line(2,"Description:",param.get('description')))
             file.write(line(2,"Default Value:",param.get('defaultvalue')))
+
+        # get dictionary with all element relations
+        reldict = getRelationDict(cdata)
+
+        # populate Graph object with triggers
+        G = addTriggersToGraph(reldict,cdata,G)
+
         file.write("\n### Rules\n")
+
         # Parse CDATA element and print correlation rule match blocks
         for r in cdata.getiterator('rule'):
+            # initialize variables
             o = ""
             v = ""
             t = ""
             override = ""
+            parent = ""
+
+            # Walk through all rules except Root Rule
             if not r.get('name') == "Root Rule":
                 file.write("\n#### " + r.get('name').title().replace("_", " ") + "\n")
                 override = r.get('correlationField')
@@ -157,8 +234,10 @@ def main(xmlfile,outfile):
                     if str(e.tag) == 'action':
                         if e.get('type') == "TRIGGER":
                             file.write(line(1,"Action:","Trigger"))
+                            # Find parent trigger of current rule
                             for trigger in cdata.getiterator('trigger'):
                                 if e.get('trigger') == trigger.get('name'):
+                                    parent = trigger.get('name')
                                     file.write(line(2,"Timeout:",trigger.get('timeout')))
                                     file.write(line(2,"Time Units:",trigger.get('timeUnit')))
                                     file.write(line(2,"Threshold:",trigger.get('threshold')))
@@ -182,8 +261,19 @@ def main(xmlfile,outfile):
                         file.write(line(2,"Filter Component","N/A"))
                         file.write(line(3,"Condition:","'" + t + "' " + o + " '" \
                                 + v + "'"))
+                        # Set nice label, add rule as graphviz node,
+                        # add edge between trigger and node
+                        label = t + r"\n" + o + r"\n" + v
+                        G.add_node(r.get('name').title().replace("_", " "), \
+                                color='orange',style='filled',fillcolor='orange',shape='box')
+                        G.add_edge(parent,r.get('name').title().replace("_", " "))
                         v = ""
                         o = ""
+
+        # write dot file for Graphviz out to file system
+        write_dot(G,'file.dot')
+        # execute 'dot' as os command, generate png file from dot file
+        check_call(['dot','-Tpng','-Grankdir=LR','file.dot','-o',imagepath + '/' + rule.findtext('id')+'.png'])
         file.write("\n\\newpage\n")
     file.close()
 
