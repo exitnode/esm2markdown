@@ -40,3 +40,4 @@ In the end, the result should look like this shortened output:
 
 
 ![screenshot](demo/demo.png "")
+<snip>output shortened</snip>
