@@ -22,5 +22,9 @@ python esm2markdown <rule xml file> <markdown output file>
 ## Example
 
 ```
-python esm2markdown RuleExport_2018_03_01_12_36_37.xml documentation.mk
+python esm2markdown demo.xml demo.mk
 ```
+
+After a conversion with pandoc, the following documentation will be the result:
+
+![screenshot](demo/demo.png "")
