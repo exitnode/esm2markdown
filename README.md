@@ -6,25 +6,37 @@ This python script is intended to be used to automatically generate use case / c
 
 This tool requires the following:
 * Python 3
-* lxml 
-* networkx
-* pydot
+* lxml (XML parser that understands CDATA)
+* networkx (needed for creating graphs)
+* pydot (needed for creating graphs)
+* pandoc (for converting to other formats than Markdown)
 
 
 On Debian you can install the dependencies with "sudo apt-get install python3-lxml python3-networkxi python3-pydot"
 
 ## Usage
 
+Please configure esm2markdown.ini to your liking and execute esm2markdown.py like this:
+
 ```
-python esm2markdown <rule xml file> <markdown output file>
+# python esm2markdown.py <rule xml file> <markdown output file>
 ```
 
 ## Example
 
+### Convert xml to Markdown
+
 ```
-python esm2markdown demo.xml demo.mk
+# python esm2markdown demo.xml demo.mk
 ```
 
-After a conversion with pandoc, the following documentation will be the result:
+### Convert to Markdown to DOCX
+
+```
+# pandoc -s demo.mk -o demo.docx
+```
+
+In the end, the result should look like this shortened output:
+
 
 ![screenshot](demo/demo.png "")
