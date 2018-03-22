@@ -131,7 +131,7 @@ def addTriggersToGraph(reldict,cdata,G):
     for key in sorted(reldict):
         trigcount = 0
         # count triggers per rule
-        if key.startswith("trigger"):
+        if key.startswith("trigger") or key.startswith("Root Trigger"):
             for trigkey in sorted(reldict):
                 if reldict[trigkey] == key:
                    trigcount += 1 
@@ -221,6 +221,7 @@ def main(xmlfile,outfile):
             t = ""
             override = ""
             parent = ""
+            matchtype = ""
 
             # Walk through all rules except Root Rule
             if not r.get('name') == "Root Rule":
@@ -246,7 +247,8 @@ def main(xmlfile,outfile):
                             file.write(line(1,"Action","N/A"))
                             file.write(line(2,"NOT IMPLEMENTED","N/A"))
                     if str(e.tag) == 'match':
-                        file.write(line(1,"Match Type:",e.get('matchType')))
+                        matchtype = e.get('matchType')
+                        file.write(line(1,"Match Type:",matchtype))
                         file.write(line(2,"Count:",e.get('count')))
                     if str(e.tag) == 'matchFilter':
                         file.write(line(1,"Match Filter","N/A"))
@@ -264,11 +266,16 @@ def main(xmlfile,outfile):
                         # Set nice label, add rule as graphviz node,
                         # add edge between trigger and node
                         label = t + r"\n" + o + r"\n" + v
-                        G.add_node(r.get('name').title().replace("_", " "), \
-                                color='orange',style='filled',fillcolor='orange',shape='box')
-                        G.add_edge(parent,r.get('name').title().replace("_", " "))
                         v = ""
                         o = ""
+                    if matchtype == "REFERENCE":
+                        shapecol="blue"
+                    else:
+                        shapecol="orange"
+                    if parent and r.get('name'):
+                        G.add_node(r.get('name').title().replace("_", " "), \
+                                color=shapecol,style='filled',fillcolor=shapecol,shape='box')
+                        G.add_edge(parent,r.get('name').title().replace("_", " "))
 
         # write dot file for Graphviz out to file system
         write_dot(G,'file.dot')
