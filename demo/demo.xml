@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nitro_policy esm="XXXX:XXXX" time="XX/XX/XXXX XX:XX:XX" user="mclemens" build="xxxxxxxxxxxxxxxxxxxxx" model="xxxxxxxx" version="xxxxxxxx">
+  <rules count="1">
+    <rule>
+      <id>47-6000112</id>
+      <normid>4026531840</normid>
+      <revision>38144</revision>
+      <sid>0</sid>
+      <class>0</class>
+      <message>Demo Correlation Rule</message>
+      <description>This correlation rule is for demo purposes only. It makes no sense at all and is only needed to test esm2markdown.</description>
+      <origin>1</origin>
+      <severity>50</severity>
+      <type>13</type>
+      <action>255</action>
+      <action_initial>255</action_initial>
+      <action_disallowed>0</action_disallowed>
+      <other_bits_default>4</other_bits_default>
+      <other_bits_disallowed>0</other_bits_disallowed>
+      <text><![CDATA[<ruleset id="47-6000112" name="Demo Correlation Rule" eventType="event" correlationField="SRC_ZONE">
+  <params>
+    <param list="T" name="Demo Parameter" type="34" range="F" single="T" external="T" description="This parameter is a parameter." defaultvalue="UserIDSrc|6751494449278544611[root]"/>
+  </params>
+  <trigger name="trigger_1" root="true" count="2" timeout="600" timeUnit="SECOND" threshold="1"/>
+  <trigger name="trigger_2" count="1" ordinal="1" timeout="600" timeUnit="SECOND" threshold="5">
+    <trigger>trigger_1</trigger>
+  </trigger>
+  <rule name="rule_1" ordinal="1" eventType="event">
+    <activate type="EVENT"/>
+    <match count="1" matchType="FILTER"/>
+    <action type="TRIGGER" trigger="trigger_2"/>
+    <matchFilter type="and">
+      <singleFilterComponent type="SRC_IP">
+        <filterData name="value" value="1.1.1.1"/>
+        <filterData name="operator" value="EQUALS"/>
+      </singleFilterComponent>
+    </matchFilter>
+  </rule>
+  <rule name="rule_2" ordinal="2" eventType="event">
+    <activate type="EVENT"/>
+    <match count="1" matchType="FILTER"/>
+    <action type="TRIGGER" trigger="trigger_2"/>
+    <matchFilter type="and">
+      <singleFilterComponent type="CUST_4259873">
+        <filterData name="value" value="Description|12622590293378144023[bla]"/>
+        <filterData name="operator" value="EQUALS"/>
+      </singleFilterComponent>
+    </matchFilter>
+  </rule>
+  <rule name="rule_3" ordinal="2" eventType="event">
+    <activate type="EVENT"/>
+    <match count="1" matchType="FILTER"/>
+    <action type="TRIGGER" trigger="trigger_1"/>
+    <matchFilter type="and">
+      <singleFilterComponent type="CUST_2">
+        <filterData name="value" value="CommandID|6751494449278544611[$var=PRIVILEGED%5FUSERS]"/>
+        <filterData name="operator" value="EQUALS"/>
+      </singleFilterComponent>
+    </matchFilter>
+  </rule>
+  <rule name="Root Rule">
+    <activate type="TRIGGER" triggerName="trigger_1"/>
+    <match count="0" matchType="FILTER"/>
+    <action type="COMPLETE_ACTION"/>
+  </rule>
+  <property>
+    <name>sigid</name>
+    <value>6000112</value>
+  </property>
+  <property>
+    <name>rev</name>
+    <value>9.5.0</value>
+  </property>
+  <property>
+    <name>user</name>
+    <value>8213</value>
+  </property>
+  <property>
+    <name>forbid</name>
+    <value>F</value>
+  </property>
+</ruleset>
+]]></text>
+      <tag origin="1">Demo Correlation Rules</tag>
+    </rule>
+  </rules>
+</nitro_policy>
