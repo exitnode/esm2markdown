@@ -42,3 +42,5 @@ In the end, the result should look like this shortened output:
 ![screenshot](demo/demo.png "")
 
 [...]
+
+For a complete view of the result, please download the PDF file: [demo.pdf](demo/demo.pdf)
