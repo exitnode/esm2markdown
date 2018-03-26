@@ -44,7 +44,7 @@ imagepath = config.get('config', 'imagepath')
 # Generates a line containing linebreaks, indented lists, styles etc.
 def line(level,key,value):
 
-    lvl = ""	
+    lvl = ""
     output = ""
     valout = ""
 
@@ -52,7 +52,7 @@ def line(level,key,value):
     elif level == 2: lvl = "    * "
     elif level == 3: lvl = "        * "
     else: lvl = ""
-    
+
     if value:
         value = unquote(value)
 
@@ -88,8 +88,10 @@ def sortxml(xmlfile):
 
 # Generate Markdown Syntax for Images
 def addimage(rulename):
-    
+
     out = ""
+    if not os.path.exists(imagepath):
+        os.makedirs(imagepath)
     imagefile = imagepath + "/" + rulename + ".png"
     imagefile = imagefile.replace(" ", "_")
     out = "![](" + imagefile + ")\n\n\n"
@@ -116,12 +118,12 @@ def getRelationDict(cdata):
         tname = t.get('name')
         tparent = t.findtext('trigger')
 
-        if tname: 
+        if tname:
             if not tparent:
                 tparent = "root"
             rel[tname]=tparent
 
-    return rel 
+    return rel
 
 # populate Graph Object with trigger nodes and edges
 def addTriggersToGraph(reldict,cdata,G):
@@ -134,7 +136,7 @@ def addTriggersToGraph(reldict,cdata,G):
         if key.startswith("trigger") or key.startswith("Root Trigger"):
             for trigkey in sorted(reldict):
                 if reldict[trigkey] == key:
-                   trigcount += 1 
+                   trigcount += 1
             # get count value from triggers element
             for tc in cdata.getiterator('trigger'):
                 if tc.get('name') == key:
@@ -148,7 +150,7 @@ def addTriggersToGraph(reldict,cdata,G):
                 oper = "AND"
             else:
                 oper = "OR"
-            
+
             # add trigger nodes to graph
             G.add_node(key, label=oper, shape='plaintext')
             if key != "root" and reldict[key] != "root":
