@@ -21,24 +21,32 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 import sys
 import os.path
 import re
-import networkx as nx
 from configparser import ConfigParser
 from lxml import etree
 from urllib.parse import unquote
-from networkx.drawing.nx_pydot import write_dot
 from subprocess import check_call
 
 
-# Read configuration from ini file
-config = ConfigParser()
-config.read('esm2markdown.ini')
+# Set configuration defaults in case of missing ini file
+key_style = "**"
+value_style = ""
+sort_rules = True
+toc = True
+imagepath = "images"
 
-key_style = config.get('config', 'key_style')
-value_style = config.get('config', 'value_style')
-sort_rules = config.getboolean('config', 'sort_rules')
-toc = config.getboolean('config', 'toc')
-images = config.getboolean('config', 'images')
-imagepath = config.get('config', 'imagepath')
+def readConfig():
+
+    # Overwrite variables with settings from ini file
+    try:
+        config = ConfigParser()
+        config.read('esm2markdown.ini')
+        key_style = config.get('config', 'key_style')
+        value_style = config.get('config', 'value_style')
+        sort_rules = config.getboolean('config', 'sort_rules')
+        toc = config.getboolean('config', 'toc')
+        imagepath = config.get('config', 'imagepath')
+    except:
+        print("Configuration file not found, using default settings")
 
 
 # Generates a line containing linebreaks, indented lists, styles etc.
@@ -67,7 +75,7 @@ def line(level,key,value):
 
 
 # Sorts input XML alphabetically based on Rule Names
-def sortxml(xmlfile):
+def sortXML(xmlfile):
 
     parser = etree.XMLParser(strip_cdata=False)
     with open(xmlfile, "rb") as source:
@@ -87,7 +95,7 @@ def sortxml(xmlfile):
 
 
 # Generate Markdown Syntax for Images
-def addimage(rulename):
+def addImage(rulename):
 
     out = ""
     if not os.path.exists(imagepath):
@@ -126,7 +134,10 @@ def getRelationDict(cdata):
     return rel
 
 # populate Graph Object with trigger nodes and edges
-def addTriggersToGraph(reldict,cdata,G):
+def addTriggersToGraph(cdata,G):
+
+    # get dictionary with all element relations
+    reldict = getRelationDict(cdata)
 
     # Walk through dict
     tco = 99
@@ -157,14 +168,51 @@ def addTriggersToGraph(reldict,cdata,G):
                 G.add_edge(reldict[key],key,splines='ortho', nodesep=0.2)
     return G
 
+def generateGraph(cdata,dMatchBlocks,rid):
+
+    dependencies = True
+
+    try:
+        from networkx.drawing.nx_pydot import write_dot
+        import networkx as nx
+    except ImportError:
+        print("Cannot find networkx. Please install pydot and networkx.")
+        print("Output file will be created without images.")
+        dependencies = False
+        return False
+
+    if dependencies:
+        G = nx.DiGraph()
+
+        # populate Graph object with triggers
+        G = addTriggersToGraph(cdata,G)
+
+        for x in dMatchBlocks:
+            G.add_node(x, color=dMatchBlocks[x]['shapecol'],style='filled',fillcolor=dMatchBlocks[x]['shapecol'],shape='box')
+            G.add_edge(dMatchBlocks[x]['parent'],x)
+
+        # write dot file for Graphviz out to file system
+        write_dot(G,'file.dot')
+        # execute 'dot' as os command, generate png file from dot file
+        try:
+            check_call(['dot','-Tpng','-Grankdir=LR','file.dot','-o',imagepath + '/' +
+                        rid +'.png'])
+        except OSError as e:
+            dependencies = False
+            print("'dot' could not be found. Please install pydot.")
+
+        return True
+
 
 # Main Function
 def main(xmlfile,outfile):
 
+    readConfig()
+
     file = open(outfile,"w")
 
     if sort_rules:
-        root = sortxml(xmlfile)
+        root = sortXML(xmlfile)
     else:
         root = etree.parse(xmlfile)
 
@@ -174,7 +222,8 @@ def main(xmlfile,outfile):
             file.write(line(1,rule.findtext('message'),"N/A"))
 
     for rule in root.getiterator('rule'):
-        G = nx.DiGraph()
+        dMatchBlocks = {}
+
         # Get CDATA
         text = rule.findtext('text')
         cdata = etree.fromstring(text)
@@ -195,8 +244,7 @@ def main(xmlfile,outfile):
         for rs in cdata.getiterator('ruleset'):
             file.write(line(1,"Group By:",rs.get('correlationField')))
         file.write("\n## Correlation Details\n")
-        if images:
-            file.write(addimage(rule.findtext('id')))
+        file.write(addImage(rule.findtext('id')))
         parameters = False
         # Print rule parameters
         for param in cdata.getiterator('param'):
@@ -207,11 +255,6 @@ def main(xmlfile,outfile):
             file.write(line(2,"Description:",param.get('description')))
             file.write(line(2,"Default Value:",param.get('defaultvalue')))
 
-        # get dictionary with all element relations
-        reldict = getRelationDict(cdata)
-
-        # populate Graph object with triggers
-        G = addTriggersToGraph(reldict,cdata,G)
 
         file.write("\n### Rules\n")
 
@@ -275,14 +318,10 @@ def main(xmlfile,outfile):
                     else:
                         shapecol="orange"
                     if parent and r.get('name'):
-                        G.add_node(r.get('name').title().replace("_", " "), \
-                                color=shapecol,style='filled',fillcolor=shapecol,shape='box')
-                        G.add_edge(parent,r.get('name').title().replace("_", " "))
+                        nicename = r.get('name').title().replace("_", " ")
+                        dMatchBlocks[nicename] = {'parent': parent, 'shapecol': shapecol}
 
-        # write dot file for Graphviz out to file system
-        write_dot(G,'file.dot')
-        # execute 'dot' as os command, generate png file from dot file
-        check_call(['dot','-Tpng','-Grankdir=LR','file.dot','-o',imagepath + '/' + rule.findtext('id')+'.png'])
+        generateGraph(cdata,dMatchBlocks,rule.findtext('id'))
         file.write("\n\\newpage\n")
     file.close()
 
