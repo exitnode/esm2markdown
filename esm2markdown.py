@@ -34,6 +34,10 @@ sort_rules = True
 toc = True
 imagepath = "images"
 
+mklines = []
+
+
+# Reads ini file, sets global variables
 def readConfig():
 
     # Overwrite variables with settings from ini file
@@ -50,28 +54,34 @@ def readConfig():
 
 
 # Generates a line containing linebreaks, indented lists, styles etc.
-def line(level,key,value):
+def addLine(typ,level,key,value):
 
     lvl = ""
     output = ""
     valout = ""
 
-    if level == 1: lvl = "*   "
-    elif level == 2: lvl = "    * "
-    elif level == 3: lvl = "        * "
-    else: lvl = ""
-
     if value:
         value = unquote(value)
 
     if key:
-        if value == "N/A": output = lvl + key_style + key + key_style + "\n"
-        elif value: output = lvl + key_style + key + key_style + " " + \
-                value_style + value + value_style + "\n"
-        else: output = ""
+        if typ == "list":
+            if level == 1: lvl = "*   "
+            elif level == 2: lvl = "    * "
+            elif level == 3: lvl = "        * "
+            if value == "N/A": output = lvl + key_style + key + key_style + "\n"
+            elif value: output = lvl + key_style + key + key_style + " " + \
+                    value_style + value + value_style + "\n"
+        elif typ == "header":
+            if level == 1: lvl = "# "
+            elif level == 2: lvl = "## "
+            elif level == 3: lvl = "### "
+            elif level == 4: lvl = "#### "
+            output = "\n" + lvl + key + "\n"
+        elif typ == "none":
+            output = key + "\n"
 
     output = re.sub('\$\$',"!",output)
-    return output
+    mklines.append(output)
 
 
 # Sorts input XML alphabetically based on Rule Names
@@ -94,7 +104,7 @@ def sortXML(xmlfile):
     return root
 
 
-# Generate Markdown Syntax for Images
+# Generates Markdown Syntax for Images
 def addImage(rulename):
 
     out = ""
@@ -106,7 +116,7 @@ def addImage(rulename):
     return out
 
 
-# Generate dict object with relations between triggers and match blocks
+# Generates dict object with relations between triggers and match blocks
 def getRelationDict(cdata):
 
     rel = {}
@@ -133,7 +143,8 @@ def getRelationDict(cdata):
 
     return rel
 
-# populate Graph Object with trigger nodes and edges
+
+# Populates Graph object with trigger nodes and edges
 def addTriggersToGraph(cdata,G):
 
     # get dictionary with all element relations
@@ -168,6 +179,8 @@ def addTriggersToGraph(cdata,G):
                 G.add_edge(reldict[key],key,splines='ortho', nodesep=0.2)
     return G
 
+
+# Generates png file visualizing match block relationships
 def generateGraph(cdata,dMatchBlocks,rid):
 
     dependencies = True
@@ -204,12 +217,19 @@ def generateGraph(cdata,dMatchBlocks,rid):
         return True
 
 
-# Main Function
-def main(xmlfile,outfile):
-
-    readConfig()
+# Walks through list 'mklines' and write content to outfile
+def writeMarkdownFile(outfile):
 
     file = open(outfile,"w")
+    for l in mklines:
+        file.write(l)
+    file.close()
+
+
+# Parses and procresses XML file
+def parseXML(xmlfile):
+
+    mklines.clear
 
     if sort_rules:
         root = sortXML(xmlfile)
@@ -217,46 +237,46 @@ def main(xmlfile,outfile):
         root = etree.parse(xmlfile)
 
     if toc:
-        file.write("\n# Correlation Rule Overview\n\n")
+        addLine("header",1,"Correlation Rule Overview","")
         for rule in root.getiterator('rule'):
-            file.write(line(1,rule.findtext('message'),"N/A"))
+            addLine("list",1,rule.findtext('message'),"N/A")
 
     for rule in root.getiterator('rule'):
+
         dMatchBlocks = {}
 
         # Get CDATA
         text = rule.findtext('text')
         cdata = etree.fromstring(text)
+
         # Print rule name as header
-        rulename = rule.findtext('message')
-        file.write("\n# " + rulename + "\n")
+        addLine("header",1,rule.findtext('message'),"")
         # Print rule description
-        description = rule.findtext('description')
-        file.write("\n## Description\n")
-        file.write(description +"\n")
+        addLine("header",2,"Description","")
+        addLine("none","",rule.findtext('description'),"")
         # Print rule information (ID, Normalization, Severity, Tags, Group By)
-        file.write("\n## General Information\n")
-        file.write(line(1,"Rule ID:",rule.findtext('id')))
-        file.write(line(1,"Normalization ID:",rule.findtext('normid')))
-        file.write(line(1,"Severity:",rule.findtext('severity')))
+        addLine("header",2,"General Information","")
+        addLine("list",1,"Rule ID:",rule.findtext('id'))
+        addLine("list",1,"Normalization ID:",rule.findtext('normid'))
+        addLine("list",1,"Severity:",rule.findtext('severity'))
         for tags in rule.getiterator('tag'):
-            file.write(line(1,"Tag:",tags.text))
+            addLine("list",1,"Tag:",tags.text)
         for rs in cdata.getiterator('ruleset'):
-            file.write(line(1,"Group By:",rs.get('correlationField')))
-        file.write("\n## Correlation Details\n")
-        file.write(addImage(rule.findtext('id')))
+            addLine("list",1,"Group By:",rs.get('correlationField'))
+        addLine("header",2,"Correlation Details","")
+        # Insert diagram into text
+        mklines.append(addImage(rule.findtext('id')))
         parameters = False
         # Print rule parameters
         for param in cdata.getiterator('param'):
             if not parameters:
-                file.write("\n### Parameters\n")
+                addLine("header",3,"Parameters","")
                 parameters = True
-            file.write(line(1,param.get('name'),"N/A"))
-            file.write(line(2,"Description:",param.get('description')))
-            file.write(line(2,"Default Value:",param.get('defaultvalue')))
+            addLine("list",1,param.get('name'),"N/A")
+            addLine("list",2,"Description:",param.get('description'))
+            addLine("list",2,"Default Value:",param.get('defaultvalue'))
 
-
-        file.write("\n### Rules\n")
+        addLine("header",3,"Rules","")
 
         # Parse CDATA element and print correlation rule match blocks
         for r in cdata.getiterator('rule'):
@@ -270,33 +290,33 @@ def main(xmlfile,outfile):
 
             # Walk through all rules except Root Rule
             if not r.get('name') == "Root Rule":
-                file.write("\n#### " + r.get('name').title().replace("_", " ") + "\n")
+                addLine("header",4,r.get('name').title().replace("_", " "),"")
                 override = r.get('correlationField')
                 for e in r.iter():
                     if str(e.tag) == 'activate':
-                        file.write(line(1,"Activate:",e.get('type')))
+                        addLine("list",1,"Activate:",e.get('type'))
                         if override:
-                            file.write(line(1,"Override Group By:",override))
+                            addLine("list",1,"Override Group By:",override)
                     if str(e.tag) == 'action':
                         if e.get('type') == "TRIGGER":
-                            file.write(line(1,"Action:","Trigger"))
+                            addLine("list",1,"Action:","Trigger")
                             # Find parent trigger of current rule
                             for trigger in cdata.getiterator('trigger'):
                                 if e.get('trigger') == trigger.get('name'):
                                     parent = trigger.get('name')
-                                    file.write(line(2,"Timeout:",trigger.get('timeout')))
-                                    file.write(line(2,"Time Units:",trigger.get('timeUnit')))
-                                    file.write(line(2,"Threshold:",trigger.get('threshold')))
-                                    file.write(line(2,"Sequence:",trigger.get('ordered')))
+                                    addLine("list",2,"Timeout:",trigger.get('timeout'))
+                                    addLine("list",2,"Time Units:",trigger.get('timeUnit'))
+                                    addLine("list",2,"Threshold:",trigger.get('threshold'))
+                                    addLine("list",2,"Sequence:",trigger.get('ordered'))
                         else:
-                            file.write(line(1,"Action","N/A"))
-                            file.write(line(2,"NOT IMPLEMENTED","N/A"))
+                            addLine("list",1,"Action","N/A")
+                            addLine("list",2,"NOT IMPLEMENTED","N/A")
                     if str(e.tag) == 'match':
                         matchtype = e.get('matchType')
-                        file.write(line(1,"Match Type:",matchtype))
-                        file.write(line(2,"Count:",e.get('count')))
+                        addLine("list",1,"Match Type:",matchtype)
+                        addLine("list",2,"Count:",e.get('count'))
                     if str(e.tag) == 'matchFilter':
-                        file.write(line(1,"Match Filter","N/A"))
+                        addLine("list",1,"Match Filter","N/A")
                     if str(e.tag) == 'singleFilterComponent':
                         t = e.get('type')
                     if str(e.tag) == 'filterData':
@@ -305,9 +325,9 @@ def main(xmlfile,outfile):
                         if (e.get('name') == "value"):
                             v = e.get('value')
                     if o and v and t:
-                        file.write(line(2,"Filter Component","N/A"))
-                        file.write(line(3,"Condition:","'" + t + "' " + o + " '" \
-                                + v + "'"))
+                        addLine("list",2,"Filter Component","N/A")
+                        addLine("list",3,"Condition:","'" + t + "' " + o + " '" \
+                                + v + "'")
                         # Set nice label, add rule as graphviz node,
                         # add edge between trigger and node
                         label = t + r"\n" + o + r"\n" + v
@@ -321,14 +341,19 @@ def main(xmlfile,outfile):
                         nicename = r.get('name').title().replace("_", " ")
                         dMatchBlocks[nicename] = {'parent': parent, 'shapecol': shapecol}
 
-        generateGraph(cdata,dMatchBlocks,rule.findtext('id'))
-        file.write("\n\\newpage\n")
-    file.close()
+        mklines.append("\n\\newpage\n")
 
+        generateGraph(cdata,dMatchBlocks,rule.findtext('id'))
+
+
+# Main function
 if __name__=="__main__":
+
     if len(sys.argv) != 3:
         print('Invalid Numbers of Arguments. Script will be terminated.')
         print('Usage: python esm2markdown <rule xml file> <output file>')
         print('Example: python esm2markdown RuleExport.xml documentation.mk')
     else:
-        main(sys.argv[1],sys.argv[2]);
+        readConfig()
+        parseXML(sys.argv[1])
+        writeMarkdownFile(sys.argv[2])
