@@ -83,6 +83,29 @@ def addLine(typ,level,key,value):
     output = re.sub('\$\$',"!",output)
     mklines.append(output)
 
+def validateXML(xmlfile):
+
+    xmlok = True
+    parser = etree.XMLParser(strip_cdata=False)
+    with open(xmlfile, "rb") as source:
+        root = etree.parse(source, parser=parser)
+
+    temp = root.find("rules")
+
+    msglist = []
+
+    for e in temp:
+        msg = e.findtext("message")
+        if msg in msglist:
+            print("Duplicate rule: " + msg)
+            xmlok = False
+        msglist.append(msg)
+
+    if xmlok == False:
+        print("The XML file contains some errors. Please fix the input file and rerun this script.")
+
+    return xmlok
+
 
 # Sorts input XML alphabetically based on Rule Names
 def sortXML(xmlfile):
@@ -355,5 +378,6 @@ if __name__=="__main__":
         print('Example: python esm2markdown RuleExport.xml documentation.mk')
     else:
         readConfig()
-        parseXML(sys.argv[1])
-        writeMarkdownFile(sys.argv[2])
+        if validateXML(sys.argv[1]) == True:
+            parseXML(sys.argv[1])
+            writeMarkdownFile(sys.argv[2])
